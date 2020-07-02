@@ -1,0 +1,2 @@
+websockets==v8.1
+alpaca-trade-api
