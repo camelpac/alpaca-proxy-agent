@@ -121,8 +121,8 @@ async def serve(sub, path):
                         else:
                             channels = await get_current_channels()
                             await conn.subscribe(channels)
-    except:
-        pass
+    except Exception as e:
+        print(e)
     print("Done")
 
     # while 1:
