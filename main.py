@@ -70,6 +70,19 @@ def consumer_thread(channels):
     asyncio.get_event_loop().run_until_complete(conn.consume())
 
 
+async def get_current_channels():
+    # copy to be able to remove closed connections
+    subs = dict(subscribers.items())
+    result = []
+    for sub, chans in subs.items():
+        if sub.state == State.CLOSED:
+            del subscribers[sub]
+        else:
+            result.extend(chans)
+    result = list(set(result))  # we want the list to be unique
+    return result
+
+
 async def serve(sub, path):
     global conn, _key_id, _secret_key
     global CONSUMER_STARTED
