@@ -131,17 +131,6 @@ async def serve(sub, path):
     #     # print(f"> {greeting}")
     #     await asyncio.sleep(3)
 
-async def a():
-    while 1:
-        await asyncio.sleep(1)
-        print("a")
-
-
-async def b():
-    while 1:
-        await asyncio.sleep(1)
-        print("B")
-
 
 if __name__ == '__main__':
     # asyncio.gather(a(), b())
