@@ -106,6 +106,10 @@ async def serve(sub, path):
             else:
                 if data.get("action"):
                     if data.get("action") == "listen":
+                        previous_channels = await get_current_channels()
+                        if previous_channels:
+                            await conn.unsubscribe(previous_channels)
+
                         channels = data.get("data").get("streams")
                         subscribers[sub] = channels
 
@@ -115,8 +119,7 @@ async def serve(sub, path):
                             CONSUMER_STARTED = True
                             threading.Thread(target=consumer_thread, args=(channels, )).start()
                         else:
-                            # channels = [for s in subscribers.values():
-
+                            channels = await get_current_channels()
                             await conn.subscribe(channels)
     except:
         pass
