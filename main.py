@@ -33,7 +33,9 @@ async def on_account(conn, stream, msg):
 
 async def on_quotes(conn, subject, msg):
     msg._raw['time'] = msg.timestamp.to_pydatetime().timestamp()
-    for sub, channels in subscribers.items():
+    # copy to be able to remove closed connections or add new ones
+    subs = dict(subscribers.items())
+    for sub, channels in subs.items():
         if "alpacadatav1/Q." + msg.symbol in channels:
             if sub.state != State.CLOSED:
                 await sub.send(json.dumps(msg._raw))
