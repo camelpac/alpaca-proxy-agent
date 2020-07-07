@@ -39,6 +39,8 @@ async def on_quotes(conn, subject, msg):
         if "alpacadatav1/Q." + msg.symbol in channels:
             if sub.state != State.CLOSED:
                 await sub.send(json.dumps(msg._raw))
+            else:
+                del subscribers[sub]
 
 
 async def on_trade(conn, stream, msg):
