@@ -1,5 +1,5 @@
 # alpaca-proxy-agent
-This is a project to help users of [alpaca](https://alpaca.markets) to execute more than one data websocket connections against their servers.
+This is a project to help users of [Alpaca](https://alpaca.markets) to execute more than one data websocket connections against their servers.
 
 Right now you can only connect one websocket with your user credentials. if you want to run more than one algorithm, you can't.<br>
 This project will help you achieve that. look at this illustration to get the concept
@@ -14,12 +14,12 @@ You have 2 options:
 - Cloning the repo and using docker/docker-compose to build and run this project locally(a bit more powerful if you want to edit the proxy code)
 
  
-### directly from docker hub
+### Directly from docker hub
 Nothing easier than that.
 - Make sure you have docker installed
 - Execute this command: `docker run -p 8765:8765 shlomik/alpaca-proxy-agent`<br>
 note: You can change the port you're listening on just by doing this `-p xxxx:8765`
-### executing local copy
+### Executing a local copy
 - Clone the repo: git clone https://github.com/shlomikushchi/alpaca-proxy-agent.git
 - Run this command locally: `docker-compose up`<br>
   It will build the image and run the container using docker-compose
