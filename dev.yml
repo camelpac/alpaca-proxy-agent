@@ -4,7 +4,9 @@ services:
   alpaca-proxy:
     build:
       context: ./
-      dockerfile: ./Dockerfile
+      dockerfile: ./Dockerfile-dev
+    volumes:
+    - ./:/opt/project
     command: python main.py
     ports:
       - "8765:8765"
