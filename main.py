@@ -74,8 +74,7 @@ def consumer_thread(channels):
         conn.on(r'Q.*')(on_quotes)
         conn.on(r'account_updates')(on_account)
         conn.on(r'trade_updates')(on_trade)
-    asyncio.get_event_loop().run_until_complete(conn.subscribe(channels))
-    asyncio.get_event_loop().run_until_complete(conn.consume())
+        conn.run(channels)
 
 
 async def get_current_channels():
