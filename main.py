@@ -8,12 +8,14 @@ import websockets
 import queue
 import threading
 import alpaca_trade_api as tradeapi
+from alpaca_trade_api.entity import quote_mapping
 from websockets.protocol import State
 
 subscribers = {}
 q_mapping = {}
 register_queue = queue.Queue()
 response_queue = queue.Queue()
+reverse_qoute_mapping = {v: k for k, v in quote_mapping.items()}
 
 conn: tradeapi.StreamConn = None
 _key_id = None
@@ -32,13 +34,19 @@ async def on_account(conn, stream, msg):
 
 
 async def on_quotes(conn, subject, msg):
+    def _restructure_original_msg(msg):
+        message = {'stream': f"Q.{msg.symbol}",
+                   'data': {reverse_qoute_mapping[k]: v for k, v in
+                            msg._raw.items() if k in reverse_qoute_mapping}
+                   }
+        return message
     msg._raw['time'] = msg.timestamp.to_pydatetime().timestamp()
     # copy to be able to remove closed connections or add new ones
     subs = dict(subscribers.items())
     for sub, channels in subs.items():
         if "alpacadatav1/Q." + msg.symbol in channels:
             if sub.state != State.CLOSED:
-                await sub.send(json.dumps(msg._raw))
+                await sub.send(json.dumps(_restructure_original_msg(msg)))
             else:
                 del subscribers[sub]
 
