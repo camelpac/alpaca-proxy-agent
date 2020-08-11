@@ -20,7 +20,7 @@ Nothing easier than that.
 - Execute this command: `docker run -p 8765:8765 shlomik/alpaca-proxy-agent`<br>
 note: You can change the port you're listening on just by doing this `-p xxxx:8765`
 ### Executing a local copy
-- Clone the repo: git clone https://github.com/shlomikushchi/alpaca-proxy-agent.git
+- Clone the repo: `git clone https://github.com/shlomikushchi/alpaca-proxy-agent.git`
 - Run this command locally: `docker-compose up`<br>
   It will build the image and run the container using docker-compose
 note: If you want to execute in edit mode do this: `docker-compose -f dev.yml up` <br>
