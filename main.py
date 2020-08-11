@@ -97,8 +97,11 @@ async def serve(sub, path):
     try:
         async for msg in sub:
             # msg = await sub.recv()
-            data = json.loads(msg)
-            # print(f"< {data}")
+            try:
+                data = json.loads(msg)
+                print(f"< {data}")
+            except Exception as e:
+                print(e)
 
             if sub not in subscribers.keys():
                 if data.get("action"):
