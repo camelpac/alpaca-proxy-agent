@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  alpaca-proxy:
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+    volumes:
+    - ./:/opt/project
+    command: python main.py
+    ports:
+      - "8765:8765"
