@@ -2,6 +2,7 @@
 
 # WS server example
 
+import os
 import asyncio
 import json
 import websockets
@@ -28,7 +29,8 @@ _key_id = None
 _secret_key = None
 _authenticated = False
 _base_url = "https://paper-api.alpaca.markets"
-USE_POLYGON = False
+USE_POLYGON = True if os.environ.get("USE_POLYGON") == 'true' else False
+print(f"Using the {'Polygon' if USE_POLYGON else 'Alpaca'} Websocket")
 _data_url = "https://data.alpaca.markets"
 QUOTE_PREFIX = "Q." if USE_POLYGON else "alpacadatav1/Q."
 
