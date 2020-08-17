@@ -210,10 +210,7 @@ if __name__ == '__main__':
                         level=logging.INFO)
     logging.getLogger("asyncio").setLevel(logging.WARNING)
     logging.getLogger('websockets').setLevel(logging.INFO)
-    # asyncio.gather(a(), b())
-    # asyncio.get_event_loop().run_until_complete(a())
-    # asyncio.get_event_loop().run_until_complete(b())
-    # asyncio.get_event_loop().run_forever()
+
     #
     start_server = websockets.serve(serve, "0.0.0.0", 8765)
 
