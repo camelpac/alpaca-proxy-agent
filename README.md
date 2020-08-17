@@ -8,7 +8,7 @@ This project will help you achieve that. look at this illustration to get the co
 
 It doesn't matter which sdk you are using (python, js, go, c#) you can use this to achieve that.
 
-## How to use
+## How to execute the docker container
 You have 2 options:
 - Using docker with image from docker hub (easiest)
 - Cloning the repo and using docker/docker-compose to build and run this project locally(a bit more powerful if you want to edit the proxy code)
@@ -25,6 +25,15 @@ note: You can change the port you're listening on just by doing this `-p xxxx:87
   It will build the image and run the container using docker-compose
 note: If you want to execute in edit mode do this: `docker-compose -f dev.yml up` <br>
 You could then update `main.py` and execute it locally.
+
+## Selecting the data stream source
+Alpaca supports 2 data streams:
+* Alapca data stream
+* Polygon data stream<br>
+
+If you are using this project I assume you know what these are and what are the differences.<br>
+The default data stream is Alpaca. To select the Polygon data stream you need to set an environment variable called `USE_POLYGON` like so:<br>
+>`docker run -p 8765:8765 -e USE_POLYGON=true shlomik/alpaca-proxy-agent`<br>
 
 ## Security
 You are runngin a local websocket server. Make sure your IP is not accessible when you do (you probably shouldn't run this on public networks)
