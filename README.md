@@ -22,7 +22,7 @@ note: You can change the port you're listening on just by doing this `-p xxxx:87
 ### Executing a local copy
 - Clone the repo: `git clone https://github.com/shlomikushchi/alpaca-proxy-agent.git`
 - Run this command locally: `docker-compose up`<br>
-  It will build the image and run the container using docker-compose
+  It will build the image and run the container using docker-compose<br>
 note: If you want to execute in edit mode do this: `docker-compose -f dev.yml up` <br>
 You could then update `main.py` and execute it locally.
 
