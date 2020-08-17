@@ -30,8 +30,9 @@ You could then update `main.py` and execute it locally.
 Alpaca supports 2 data streams:
 * Alapca data stream
 * Polygon data stream<br>
+
 If you are using this project I assume you know what these are and what are the differences.<br>
-The default data stream is Alpaca. To select the Polygon data stream you need to set an enviroment variable called `USE_POLYGON` like so:<br>
+The default data stream is Alpaca. To select the Polygon data stream you need to set an environment variable called `USE_POLYGON` like so:<br>
 `docker run -p 8765:8765 -e USE_POLYGON=true shlomik/alpaca-proxy-agent`<br>
 
 ## Security
