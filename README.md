@@ -33,7 +33,7 @@ Alpaca supports 2 data streams:
 
 If you are using this project I assume you know what these are and what are the differences.<br>
 The default data stream is Alpaca. To select the Polygon data stream you need to set an environment variable called `USE_POLYGON` like so:<br>
-`docker run -p 8765:8765 -e USE_POLYGON=true shlomik/alpaca-proxy-agent`<br>
+>`docker run -p 8765:8765 -e USE_POLYGON=true shlomik/alpaca-proxy-agent`<br>
 
 ## Security
 You are runngin a local websocket server. Make sure your IP is not accessible when you do (you probably shouldn't run this on public networks)
