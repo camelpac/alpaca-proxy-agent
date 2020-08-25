@@ -10,9 +10,10 @@ import queue
 import threading
 import alpaca_trade_api as tradeapi
 from alpaca_trade_api.common import URL
-from alpaca_trade_api.entity import quote_mapping, agg_mapping
+from alpaca_trade_api.entity import quote_mapping, agg_mapping, trade_mapping
 from alpaca_trade_api.polygon.entity import quote_mapping as \
-    polygon_quote_mapping, agg_mapping as polygon_aggs_mapping
+    polygon_quote_mapping, agg_mapping as polygon_aggs_mapping, \
+    trade_mapping as polygon_trade_mapping
 from websockets.protocol import State
 
 subscribers = {}
@@ -22,6 +23,11 @@ response_queue = queue.Queue()
 reverse_qoute_mapping = {v: k for k, v in quote_mapping.items()}
 reverse_polygon_qoute_mapping = {
     v: k for k, v in polygon_quote_mapping.items()
+}
+
+reverse_trade_mapping = {v: k for k, v in trade_mapping.items()}
+reverse_polygon_trade_mapping = {
+    v: k for k, v in polygon_trade_mapping.items()
 }
 
 reverse_minute_agg_mapping = {v: k for k, v in agg_mapping.items()}
@@ -38,12 +44,16 @@ USE_POLYGON = True if os.environ.get("USE_POLYGON") == 'true' else False
 print(f"Using the {'Polygon' if USE_POLYGON else 'Alpaca'} Websocket")
 _data_url = "https://data.alpaca.markets"
 QUOTE_PREFIX = "Q." if USE_POLYGON else "alpacadatav1/Q."
+TRADE_PREFIX = "T." if USE_POLYGON else "alpacadatav1/T."
 MINUTE_AGG_PREFIX = "AM." if USE_POLYGON else "alpacadatav1/AM."
+SECOND_AGG_PREFIX = "A."
 
 
 class MessageType(Enum):
     Quote = 1
     MinuteAgg = 2
+    SecondAgg = 3  # only with polygon
+    Trade = 4
 
 
 async def on_auth(conn, stream, msg):
@@ -75,10 +85,18 @@ async def on_message(conn, subject, msg):
                 stream = 'Q' if USE_POLYGON else f"Q.{m.symbol}"
                 _mapping = reverse_polygon_qoute_mapping if USE_POLYGON else \
                     reverse_qoute_mapping
+            elif _type == MessageType.Trade:
+                stream = 'T' if USE_POLYGON else f"T.{m.symbol}"
+                _mapping = reverse_polygon_trade_mapping if USE_POLYGON else \
+                    reverse_trade_mapping
             elif _type == MessageType.MinuteAgg:
                 stream = 'AM' if USE_POLYGON else f"AM.{m.symbol}"
                 _mapping = reverse_polygon_aggs_mapping if USE_POLYGON else \
                     reverse_minute_agg_mapping
+            elif _type == MessageType.SecondAgg:
+                # only supported in polygon
+                stream = 'A'
+                _mapping = reverse_polygon_aggs_mapping
             return stream, _mapping
 
         stream, _mapping = _get_correct_mapping()
@@ -116,9 +134,16 @@ async def on_message(conn, subject, msg):
         if QUOTE_PREFIX + msg.symbol in channels:
             restructured = _restructure_original_msg(msg,
                                                      MessageType.Quote)
+        elif TRADE_PREFIX + msg.symbol in channels:
+            restructured = _restructure_original_msg(msg,
+                                                     MessageType.Trade)
         elif MINUTE_AGG_PREFIX + msg.symbol in channels:
             restructured = _restructure_original_msg(msg,
                                                      MessageType.MinuteAgg)
+        elif SECOND_AGG_PREFIX + msg.symbol in channels:
+            restructured = _restructure_original_msg(msg,
+                                                     MessageType.SecondAgg)
+
         if sub.state != State.CLOSED:
             await sub.send(json.dumps(restructured))
         else:
@@ -148,6 +173,9 @@ def consumer_thread(channels):
 
         conn.on('authenticated')(on_auth)
         conn.on(r'Q.*')(on_message)
+        conn.on(r'T.*')(on_message)
+        if USE_POLYGON:
+            conn.on(r'A.*')(on_message)
         conn.on(r'AM.*')(on_message)
         conn.on(r'account_updates')(on_account)
         conn.on(r'trade_updates')(on_trade)
