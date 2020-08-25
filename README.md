@@ -1,4 +1,14 @@
-# alpaca-proxy-agent
+```py
+
+   _   _                           ___                         _                    _   
+  /_\ | |_ __   __ _  ___ __ _    / _ \_ __ _____  ___   _    /_\   __ _  ___ _ __ | |_ 
+ //_\\| | '_ \ / _` |/ __/ _` |  / /_)/ '__/ _ \ \/ / | | |  //_\\ / _` |/ _ \ '_ \| __|
+/  _  \ | |_) | (_| | (_| (_| | / ___/| | | (_) >  <| |_| | /  _  \ (_| |  __/ | | | |_ 
+\_/ \_/_| .__/ \__,_|\___\__,_| \/    |_|  \___/_/\_\\__, | \_/ \_/\__, |\___|_| |_|\__|
+        |_|                                          |___/         |___/                
+
+```
+
 This is a project to help users of [Alpaca](https://alpaca.markets) to execute more than one data websocket connections against their servers.
 
 Right now you can only connect one websocket with your user credentials. if you want to run more than one algorithm, you can't.<br>
