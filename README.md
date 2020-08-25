@@ -36,5 +36,6 @@ The default data stream is Alpaca. To select the Polygon data stream you need to
 >`docker run -p 8765:8765 -e USE_POLYGON=true shlomik/alpaca-proxy-agent`<br>
 
 ## Security
-You are runngin a local websocket server. Make sure your IP is not accessible when you do (you probably shouldn't run this on public networks)
+You are runngin a local websocket server. Make sure your IP is not accessible when you do (you probably shouldn't run this on public networks)<br>
+SSL between your algo and the proxy is not supported (it runs locally). between the proxy-agent and the Alpaca servers we use wss
   
