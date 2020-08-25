@@ -16,6 +16,9 @@ from alpaca_trade_api.polygon.entity import quote_mapping as \
     trade_mapping as polygon_trade_mapping
 from websockets.protocol import State
 
+from version import VERSION
+from asciiart import ascii_art
+
 subscribers = {}
 q_mapping = {}
 register_queue = queue.Queue()
@@ -41,7 +44,7 @@ _secret_key = None
 _authenticated = False
 _base_url = "https://paper-api.alpaca.markets"
 USE_POLYGON = True if os.environ.get("USE_POLYGON") == 'true' else False
-print(f"Using the {'Polygon' if USE_POLYGON else 'Alpaca'} Websocket")
+
 _data_url = "https://data.alpaca.markets"
 QUOTE_PREFIX = "Q." if USE_POLYGON else "alpacadatav1/Q."
 TRADE_PREFIX = "T." if USE_POLYGON else "alpacadatav1/T."
@@ -287,6 +290,10 @@ if __name__ == '__main__':
     logging.getLogger('websockets').setLevel(logging.INFO)
 
     #
+    print(ascii_art)
+    logging.info(f"Alpaca Proxy Agent v{VERSION}")
+    logging.info(f"Using the {'Polygon' if USE_POLYGON else 'Alpaca'} "
+                 f"Websocket")
     start_server = websockets.serve(serve, "0.0.0.0", 8765)
 
     asyncio.get_event_loop().run_until_complete(start_server)
