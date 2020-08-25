@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 
-# WS server example
-
 import os
 import asyncio
 import json
+from enum import Enum
+
 import websockets
 import queue
 import threading
 import alpaca_trade_api as tradeapi
 from alpaca_trade_api.common import URL
-from alpaca_trade_api.entity import quote_mapping
+from alpaca_trade_api.entity import quote_mapping, agg_mapping
 from alpaca_trade_api.polygon.entity import quote_mapping as \
-    polygon_quote_mapping
+    polygon_quote_mapping, agg_mapping as polygon_aggs_mapping
 from websockets.protocol import State
 
 subscribers = {}
@@ -24,6 +24,11 @@ reverse_polygon_qoute_mapping = {
     v: k for k, v in polygon_quote_mapping.items()
 }
 
+reverse_minute_agg_mapping = {v: k for k, v in agg_mapping.items()}
+reverse_polygon_aggs_mapping = {
+    v: k for k, v in polygon_aggs_mapping.items()
+}
+
 conn: tradeapi.StreamConn = None
 _key_id = None
 _secret_key = None
@@ -33,6 +38,13 @@ USE_POLYGON = True if os.environ.get("USE_POLYGON") == 'true' else False
 print(f"Using the {'Polygon' if USE_POLYGON else 'Alpaca'} Websocket")
 _data_url = "https://data.alpaca.markets"
 QUOTE_PREFIX = "Q." if USE_POLYGON else "alpacadatav1/Q."
+MINUTE_AGG_PREFIX = "AM." if USE_POLYGON else "alpacadatav1/AM."
+
+
+class MessageType(Enum):
+    Quote = 1
+    MinuteAgg = 2
+
 
 async def on_auth(conn, stream, msg):
     pass
@@ -42,8 +54,8 @@ async def on_account(conn, stream, msg):
     q_mapping[msg.symbol].put(msg)
 
 
-async def on_quotes(conn, subject, msg):
-    def _restructure_original_msg(m):
+async def on_message(conn, subject, msg):
+    def _restructure_original_msg(m, _type: MessageType):
         """
         the sdk translate the message received from the server to a more
         readable format. so this is how we get it (readable). but when we pass
@@ -53,32 +65,64 @@ async def on_quotes(conn, subject, msg):
         :param m:
         :return:
         """
-        if USE_POLYGON:
-            data = {reverse_polygon_qoute_mapping[k]: v for
-                    k, v in m._raw.items() if
-                    k in reverse_polygon_qoute_mapping}
-            data['ev'] = 'Q'
-            data['sym'] = m.symbol
-            message = [data]
-        else:
-            message = {
-                'stream': f"Q.{m.symbol}",
-                'data': {reverse_qoute_mapping[k]: v for k, v in
-                         m._raw.items() if k in reverse_qoute_mapping}
-            }
-        return message
-    msg._raw['time'] = msg.timestamp.to_pydatetime().timestamp()
+        def _get_correct_mapping():
+            """
+            we may handle different message types (aggs, quotes, trades)
+            this method decide what reverese mapping to use
+            :return:
+            """
+            if _type == MessageType.Quote:
+                stream = 'Q' if USE_POLYGON else f"Q.{m.symbol}"
+                _mapping = reverse_polygon_qoute_mapping if USE_POLYGON else \
+                    reverse_qoute_mapping
+            elif _type == MessageType.MinuteAgg:
+                stream = 'AM' if USE_POLYGON else f"AM.{m.symbol}"
+                _mapping = reverse_polygon_aggs_mapping if USE_POLYGON else \
+                    reverse_minute_agg_mapping
+            return stream, _mapping
 
-    # copy subscribers list to be able to remove closed connections or add new
-    # ones
+        stream, _mapping = _get_correct_mapping()
+
+        def _construct_message():
+            """
+            polygon and alpaca message structure is different
+            :return:
+            """
+            if USE_POLYGON:
+                data = {_mapping[k]: v for
+                        k, v in m._raw.items() if
+                        k in _mapping}
+                data['ev'] = stream
+                data['sym'] = m.symbol
+                message = [data]
+            else:
+                message = {
+                    'stream': stream,
+                    'data': {_mapping[k]: v for k, v in
+                             m._raw.items() if k in _mapping}
+                }
+            return message
+
+        return _construct_message()
+
+    # msg._raw['time'] = msg.timestamp.to_pydatetime().timestamp()
+
+    # copy subscribers list to be able to remove closed connections or
+    # add new ones
     subs = dict(subscribers.items())
+
     # iterate channels and distribute the message to correct subscribers
     for sub, channels in subs.items():
         if QUOTE_PREFIX + msg.symbol in channels:
-            if sub.state != State.CLOSED:
-                await sub.send(json.dumps(_restructure_original_msg(msg)))
-            else:
-                del subscribers[sub]
+            restructured = _restructure_original_msg(msg,
+                                                     MessageType.Quote)
+        elif MINUTE_AGG_PREFIX + msg.symbol in channels:
+            restructured = _restructure_original_msg(msg,
+                                                     MessageType.MinuteAgg)
+        if sub.state != State.CLOSED:
+            await sub.send(json.dumps(restructured))
+        else:
+            del subscribers[sub]
 
 
 async def on_trade(conn, stream, msg):
@@ -103,7 +147,8 @@ def consumer_thread(channels):
             data_stream='polygon' if USE_POLYGON else 'alpacadatav1')
 
         conn.on('authenticated')(on_auth)
-        conn.on(r'Q.*')(on_quotes)
+        conn.on(r'Q.*')(on_message)
+        conn.on(r'AM.*')(on_message)
         conn.on(r'account_updates')(on_account)
         conn.on(r'trade_updates')(on_trade)
         conn.run(channels)
@@ -218,14 +263,3 @@ if __name__ == '__main__':
 
     asyncio.get_event_loop().run_until_complete(start_server)
     asyncio.get_event_loop().run_forever()
-
-"""
-main thread:
-- accepts new connections
-  - registers the symbols
-
-- thread for alpaca ws. 
-
-
-
-"""
