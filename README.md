@@ -27,7 +27,8 @@ You have 2 options:
 ### Directly from docker hub
 Nothing easier than that.
 - Make sure you have docker installed
-- Execute this command: `docker run -p 8765:8765 shlomik/alpaca-proxy-agent`<br>
+- make sure you have the updated image version by running this: `docker pull shlomik/alpaca-proxy-agent`
+- Execute this command: `docker run -it -p 8765:8765 shlomik/alpaca-proxy-agent`<br>
 note: You can change the port you're listening on just by doing this `-p xxxx:8765`
 ### Executing a local copy
 - Clone the repo: `git clone https://github.com/shlomikushchi/alpaca-proxy-agent.git`
@@ -43,7 +44,7 @@ Alpaca supports 2 data streams:
 
 If you are using this project I assume you know what these are and what are the differences.<br>
 The default data stream is Alpaca. To select the Polygon data stream you need to set an environment variable called `USE_POLYGON` like so:<br>
->`docker run -p 8765:8765 -e USE_POLYGON=true shlomik/alpaca-proxy-agent`<br>
+>`docker run -p 8765:8765 -it -e USE_POLYGON=true shlomik/alpaca-proxy-agent`<br>
 
 ## Security
 You are runngin a local websocket server. Make sure your IP is not accessible when you do (you probably shouldn't run this on public networks)<br>
