@@ -291,6 +291,23 @@ async def serve(sub, path):
     #     await asyncio.sleep(3)
 
 
+async def send_response_to_client():
+    """
+    The messages sent back to the clients should be sent from the same thread
+    that accepted the connection. it a websocket issue.
+    messages from the server are received via a different thread and passed to
+    this thread(the main thread) using a queue. then this thread( the main
+    thread) is passing the messages to the clients.
+    :return:
+    """
+    while 1:
+        if response_queue.empty():
+            await asyncio.sleep(0.05)
+            continue
+        response = response_queue.get()
+        await response["subscriber"].send(json.dumps(response["response"]))
+
+
 if __name__ == '__main__':
     import logging
 
@@ -306,5 +323,10 @@ if __name__ == '__main__':
                  f"Websocket")
     start_server = websockets.serve(serve, "0.0.0.0", 8765)
 
-    asyncio.get_event_loop().run_until_complete(start_server)
+    # asyncio.get_event_loop().run_until_complete(start_server)
+    asyncio.get_event_loop().run_until_complete(asyncio.gather(
+        start_server,
+        send_response_to_client(),
+        return_exceptions=True,
+    ))
     asyncio.get_event_loop().run_forever()
