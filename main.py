@@ -259,9 +259,7 @@ async def serve(sub, path):
             else:
                 if USE_POLYGON:
                     if data.get("action") == "subscribe":
-                        new_channels = data.get("params")
-                        new_channels = [new_channels] if \
-                            isinstance(new_channels, str) else new_channels
+                        new_channels = data.get("params").split(",")
                 else:
                     if data.get("action") == "listen":
                         new_channels = data.get("data").get("streams")
