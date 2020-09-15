@@ -18,6 +18,9 @@ from websockets.protocol import State
 
 from version import VERSION
 from asciiart import ascii_art
+from threading import Lock
+
+lock = Lock()
 
 subscribers = {}
 q_mapping = {}
@@ -269,14 +272,14 @@ async def serve(sub, path):
                 #     await conn.unsubscribe(previous_channels)
 
                 subscribers[sub] = new_channels
-
-                if not CONSUMER_STARTED:
-                    CONSUMER_STARTED = True
-                    threading.Thread(target=consumer_thread,
-                                     args=(new_channels, )).start()
-                else:
-                    channels = await get_current_channels()
-                    await conn.subscribe(channels)
+                with lock:
+                    if not CONSUMER_STARTED:
+                        CONSUMER_STARTED = True
+                        threading.Thread(target=consumer_thread,
+                                         args=(new_channels, )).start()
+                    else:
+                        channels = await get_current_channels()
+                        await conn.subscribe(channels)
     except Exception as e:
         print(e)
     print("Done")
