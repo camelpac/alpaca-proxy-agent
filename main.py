@@ -68,6 +68,10 @@ async def on_account(conn, stream, msg):
     q_mapping[msg.symbol].put(msg)
 
 
+async def listen(conn, channel, msg):
+    if hasattr(msg, 'error'):
+        print('listening error', msg.error)
+
 async def on_message(conn, subject, msg):
     def _restructure_original_msg(m, _type: MessageType):
         """
