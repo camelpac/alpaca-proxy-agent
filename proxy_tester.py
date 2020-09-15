@@ -50,5 +50,11 @@ async def register():
 
         # await ws.close()
 
+import logging
+logger = logging.getLogger('websockets')
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler())
+loop = asyncio.get_event_loop()
+loop.set_debug(True)
 asyncio.get_event_loop().run_until_complete(register())
 asyncio.get_event_loop().run_forever()

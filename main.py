@@ -1,66 +1,30 @@
 #!/usr/bin/env python
 
-import os
 import asyncio
 import json
-from enum import Enum
 
 import websockets
-import queue
 import threading
 import alpaca_trade_api as tradeapi
 from alpaca_trade_api.common import URL
-from alpaca_trade_api.entity import quote_mapping, agg_mapping, trade_mapping
-from alpaca_trade_api.polygon.entity import quote_mapping as \
-    polygon_quote_mapping, agg_mapping as polygon_aggs_mapping, \
-    trade_mapping as polygon_trade_mapping
 from websockets.protocol import State
 
+from defs import USE_POLYGON
+from server_message_handler import on_message
+from shared_memory_obj import q_mapping, subscribers, response_queue
 from version import VERSION
 from asciiart import ascii_art
 from threading import Lock
 
 lock = Lock()
 
-subscribers = {}
-q_mapping = {}
-register_queue = queue.Queue()
-response_queue = queue.Queue()
-reverse_qoute_mapping = {v: k for k, v in quote_mapping.items()}
-reverse_polygon_qoute_mapping = {
-    v: k for k, v in polygon_quote_mapping.items()
-}
-
-reverse_trade_mapping = {v: k for k, v in trade_mapping.items()}
-reverse_polygon_trade_mapping = {
-    v: k for k, v in polygon_trade_mapping.items()
-}
-
-reverse_minute_agg_mapping = {v: k for k, v in agg_mapping.items()}
-reverse_polygon_aggs_mapping = {
-    v: k for k, v in polygon_aggs_mapping.items()
-}
 
 conn: tradeapi.StreamConn = None
 _key_id = None
 _secret_key = None
 _authenticated = False
 _base_url = "https://paper-api.alpaca.markets"
-USE_POLYGON = True if os.environ.get("USE_POLYGON") == 'true' else False
-
 _data_url = "https://data.alpaca.markets"
-QUOTE_PREFIX = "Q." if USE_POLYGON else "alpacadatav1/Q."
-TRADE_PREFIX = "T." if USE_POLYGON else "alpacadatav1/T."
-# MINUTE_AGG_PREFIX = "AM." if USE_POLYGON else "alpacadatav1/AM."
-MINUTE_AGG_PREFIX = "AM."
-SECOND_AGG_PREFIX = "A."
-
-
-class MessageType(Enum):
-    Quote = 1
-    MinuteAgg = 2
-    SecondAgg = 3  # only with polygon
-    Trade = 4
 
 
 async def on_auth(conn, stream, msg):
@@ -74,91 +38,6 @@ async def on_account(conn, stream, msg):
 async def listen(conn, channel, msg):
     if hasattr(msg, 'error'):
         print('listening error', msg.error)
-
-async def on_message(conn, subject, msg):
-    def _restructure_original_msg(m, _type: MessageType):
-        """
-        the sdk translate the message received from the server to a more
-        readable format. so this is how we get it (readable). but when we pass
-        it to the clients using this proxy, the clients expects the message to
-        be not readable (or, server compact), and tries to translate it to
-        readable format. so this method converts it back to the expected format
-        :param m:
-        :return:
-        """
-        def _get_correct_mapping():
-            """
-            we may handle different message types (aggs, quotes, trades)
-            this method decide what reverese mapping to use
-            :return:
-            """
-            if _type == MessageType.Quote:
-                stream = 'Q' if USE_POLYGON else f"Q.{m.symbol}"
-                _mapping = reverse_polygon_qoute_mapping if USE_POLYGON else \
-                    reverse_qoute_mapping
-            elif _type == MessageType.Trade:
-                stream = 'T' if USE_POLYGON else f"T.{m.symbol}"
-                _mapping = reverse_polygon_trade_mapping if USE_POLYGON else \
-                    reverse_trade_mapping
-            elif _type == MessageType.MinuteAgg:
-                stream = 'AM' if USE_POLYGON else f"AM.{m.symbol}"
-                _mapping = reverse_polygon_aggs_mapping if USE_POLYGON else \
-                    reverse_minute_agg_mapping
-            elif _type == MessageType.SecondAgg:
-                # only supported in polygon
-                stream = 'A'
-                _mapping = reverse_polygon_aggs_mapping
-            return stream, _mapping
-
-        stream, _mapping = _get_correct_mapping()
-
-        def _construct_message():
-            """
-            polygon and alpaca message structure is different
-            :return:
-            """
-            if USE_POLYGON:
-                data = {_mapping[k]: v for
-                        k, v in m._raw.items() if
-                        k in _mapping}
-                data['ev'] = stream
-                data['sym'] = m.symbol
-                message = [data]
-            else:
-                message = {
-                    'stream': stream,
-                    'data': {_mapping[k]: v for k, v in
-                             m._raw.items() if k in _mapping}
-                }
-            return message
-
-        return _construct_message()
-
-    # msg._raw['time'] = msg.timestamp.to_pydatetime().timestamp()
-
-    # copy subscribers list to be able to remove closed connections or
-    # add new ones
-    subs = dict(subscribers.items())
-
-    # iterate channels and distribute the message to correct subscribers
-    for sub, channels in subs.items():
-        if QUOTE_PREFIX + msg.symbol in channels:
-            restructured = _restructure_original_msg(msg,
-                                                     MessageType.Quote)
-        elif TRADE_PREFIX + msg.symbol in channels:
-            restructured = _restructure_original_msg(msg,
-                                                     MessageType.Trade)
-        elif MINUTE_AGG_PREFIX + msg.symbol in channels:
-            restructured = _restructure_original_msg(msg,
-                                                     MessageType.MinuteAgg)
-        elif SECOND_AGG_PREFIX + msg.symbol in channels:
-            restructured = _restructure_original_msg(msg,
-                                                     MessageType.SecondAgg)
-
-        if sub.state != State.CLOSED:
-            await sub.send(json.dumps(restructured))
-        else:
-            del subscribers[sub]
 
 
 async def on_trade(conn, stream, msg):
