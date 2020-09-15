@@ -48,7 +48,8 @@ USE_POLYGON = True if os.environ.get("USE_POLYGON") == 'true' else False
 _data_url = "https://data.alpaca.markets"
 QUOTE_PREFIX = "Q." if USE_POLYGON else "alpacadatav1/Q."
 TRADE_PREFIX = "T." if USE_POLYGON else "alpacadatav1/T."
-MINUTE_AGG_PREFIX = "AM." if USE_POLYGON else "alpacadatav1/AM."
+# MINUTE_AGG_PREFIX = "AM." if USE_POLYGON else "alpacadatav1/AM."
+MINUTE_AGG_PREFIX = "AM."
 SECOND_AGG_PREFIX = "A."
 
 
