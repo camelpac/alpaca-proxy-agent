@@ -182,6 +182,10 @@ def consumer_thread(channels):
         conn.on('authenticated')(on_auth)
         conn.on(r'Q.*')(on_message)
         conn.on(r'T.*')(on_message)
+
+        conn.on(r'listening')(listen)
+
+
         if USE_POLYGON:
             conn.on(r'A.*')(on_message)
         conn.on(r'AM.*')(on_message)
