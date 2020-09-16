@@ -9,8 +9,7 @@ from alpaca_trade_api.polygon.entity import quote_mapping as \
 
 
 USE_POLYGON = True if os.environ.get("USE_POLYGON") == 'true' else False
-USE_POLYGON = False
-# USE_POLYGON = True
+
 
 
 QUOTE_PREFIX = "Q." if USE_POLYGON else "alpacadatav1/Q."
