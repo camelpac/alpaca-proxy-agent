@@ -1,3 +1,5 @@
+import traceback
+
 from defs import USE_POLYGON, QUOTE_PREFIX, MessageType, TRADE_PREFIX, \
     MINUTE_AGG_PREFIX, SECOND_AGG_PREFIX, reverse_polygon_qoute_mapping, \
     reverse_qoute_mapping, reverse_polygon_trade_mapping, \
@@ -131,13 +133,16 @@ async def on_message(conn, subject, msg):
     subs = dict(subscribers.items())
 
     # iterate channels and distribute the message to correct subscribers
-    for sub, channels in subs.items():
-        restructured = _validate_restructured_message(msg, channels)
+    try:
+        for sub, channels in subs.items():
+            restructured = _validate_restructured_message(msg, channels)
 
-        if sub.state != State.CLOSED:
-            if restructured:
-                # only if we were able to restructure it
-                response_queue.put({"subscriber": sub,
-                                    "response": restructured})
-        else:
-            del subscribers[sub]
+            if sub.state != State.CLOSED:
+                if restructured:
+                    # only if we were able to restructure it
+                    response_queue.put({"subscriber": sub,
+                                        "response": restructured})
+            else:
+                del subscribers[sub]
+    except Exception as e:
+        traceback.print_exc()
