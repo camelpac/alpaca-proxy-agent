@@ -77,16 +77,19 @@ def consumer_thread(channels):
 
 
 async def get_current_channels():
+    result = []
+    for sub, chans in subscribers.items():
+        result.extend(chans)
+    result = list(set(result))  # we want the list to be unique
+    return result
+
+
+async def clear_dead_subscribers():
     # copy to be able to remove closed connections
     subs = dict(subscribers.items())
-    result = []
     for sub, chans in subs.items():
         if sub.state == State.CLOSED:
             del subscribers[sub]
-        else:
-            result.extend(chans)
-    result = list(set(result))  # we want the list to be unique
-    return result
 
 
 async def serve(sub, path):
