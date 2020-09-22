@@ -142,7 +142,5 @@ async def on_message(conn, subject, msg):
                     # only if we were able to restructure it
                     response_queue.put({"subscriber": sub,
                                         "response": restructured})
-            else:
-                del subscribers[sub]
     except Exception as e:
         traceback.print_exc()
