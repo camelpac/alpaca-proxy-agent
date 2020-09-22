@@ -137,7 +137,10 @@ async def serve(sub, path):
                                     "secret_key")
                     # not really authorized yet.
                     # but sending because it's expected
-                    response = json.dumps({"data": {"status": "authorized"}})
+                    response = json.dumps({
+                        "data": {"status": "authorized"},
+                        "stream": "authorization"
+                    })
                     await sub.send(response)
                 subscribers[sub] = []
 
