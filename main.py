@@ -149,9 +149,10 @@ async def serve(sub, path):
                     if data.get("action") == "listen":
                         new_channels = data.get("data").get("streams")
 
-                # previous_channels = await get_current_channels()
-                # if previous_channels:
-                #     await conn.unsubscribe(previous_channels)
+                previous_channels = await get_current_channels()
+                if previous_channels:
+                    await conn.unsubscribe(previous_channels)
+                    await clear_dead_subscribers()
 
                 subscribers[sub] = new_channels
                 with lock:
