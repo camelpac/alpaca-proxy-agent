@@ -10,6 +10,31 @@ from shared_memory_obj import subscribers, response_queue
 from websockets.protocol import State
 
 
+def _get_correct_entity_mapping(m, _type):
+    """
+    we may handle different message types (aggs, quotes, trades)
+    this method decide what reverese mapping to use
+    :return:
+    """
+    if _type == MessageType.Quote:
+        stream = 'Q' if USE_POLYGON else f"Q.{m.symbol}"
+        _mapping = reverse_polygon_qoute_mapping if USE_POLYGON else \
+            reverse_qoute_mapping
+    elif _type == MessageType.Trade:
+        stream = 'T' if USE_POLYGON else f"T.{m.symbol}"
+        _mapping = reverse_polygon_trade_mapping if USE_POLYGON else \
+            reverse_trade_mapping
+    elif _type == MessageType.MinuteAgg:
+        stream = 'AM' if USE_POLYGON else f"AM.{m.symbol}"
+        _mapping = reverse_polygon_aggs_mapping if USE_POLYGON else \
+            reverse_minute_agg_mapping
+    elif _type == MessageType.SecondAgg:
+        # only supported in polygon
+        stream = 'A'
+        _mapping = reverse_polygon_aggs_mapping
+    return stream, _mapping
+
+
 def _build_restructured_message(m, _type: MessageType):
     """
     the sdk translate the message received from the server to a more
@@ -20,54 +45,23 @@ def _build_restructured_message(m, _type: MessageType):
     :param m:
     :return:
     """
+    stream, _mapping = _get_correct_entity_mapping(m, _type)
 
-    def _get_correct_mapping():
-        """
-        we may handle different message types (aggs, quotes, trades)
-        this method decide what reverese mapping to use
-        :return:
-        """
-        if _type == MessageType.Quote:
-            stream = 'Q' if USE_POLYGON else f"Q.{m.symbol}"
-            _mapping = reverse_polygon_qoute_mapping if USE_POLYGON else \
-                reverse_qoute_mapping
-        elif _type == MessageType.Trade:
-            stream = 'T' if USE_POLYGON else f"T.{m.symbol}"
-            _mapping = reverse_polygon_trade_mapping if USE_POLYGON else \
-                reverse_trade_mapping
-        elif _type == MessageType.MinuteAgg:
-            stream = 'AM' if USE_POLYGON else f"AM.{m.symbol}"
-            _mapping = reverse_polygon_aggs_mapping if USE_POLYGON else \
-                reverse_minute_agg_mapping
-        elif _type == MessageType.SecondAgg:
-            # only supported in polygon
-            stream = 'A'
-            _mapping = reverse_polygon_aggs_mapping
-        return stream, _mapping
-
-    stream, _mapping = _get_correct_mapping()
-
-    def _construct_message():
-        """
-        polygon and alpaca message structure is different
-        :return:
-        """
-        if USE_POLYGON:
-            data = {_mapping[k]: v for
-                    k, v in m._raw.items() if
-                    k in _mapping}
-            data['ev'] = stream
-            data['sym'] = m.symbol
-            message = [data]
-        else:
-            message = {
-                'stream': stream,
-                'data':   {_mapping[k]: v for k, v in
-                           m._raw.items() if k in _mapping}
-            }
-        return message
-
-    return _construct_message()
+    # polygon and alpaca message structure is different
+    if USE_POLYGON:
+        data = {_mapping[k]: v for
+                k, v in m._raw.items() if
+                k in _mapping}
+        data['ev'] = stream
+        data['sym'] = m.symbol
+        message = [data]
+    else:
+        message = {
+            'stream': stream,
+            'data':   {_mapping[k]: v for k, v in
+                       m._raw.items() if k in _mapping}
+        }
+    return message
 
 
 def _get_original_message(msg, chans):
@@ -83,8 +77,7 @@ def _get_original_message(msg, chans):
     """
     restructured = None
     if QUOTE_PREFIX + msg.symbol in chans or QUOTE_PREFIX + "*" in chans:
-        restructured = _build_restructured_message(msg,
-                                                   MessageType.Quote)
+        restructured = _build_restructured_message(msg, MessageType.Quote)
         if USE_POLYGON:
             first = restructured[0]
             if 'bs' not in first or 'bp' not in first or 'as' not in first:
@@ -99,8 +92,7 @@ def _get_original_message(msg, chans):
 
     if not restructured and (TRADE_PREFIX + msg.symbol in
                              chans or TRADE_PREFIX + "*" in chans):
-        restructured = _build_restructured_message(msg,
-                                                   MessageType.Trade)
+        restructured = _build_restructured_message(msg, MessageType.Trade)
         if USE_POLYGON:
             first = restructured[0]
             if 'x' not in first or 'p' not in first or 's' not in first:
@@ -115,8 +107,7 @@ def _get_original_message(msg, chans):
     if not restructured and \
             (MINUTE_AGG_PREFIX + msg.symbol in chans or
              [l for l in chans if MINUTE_AGG_PREFIX + "*" in l]):
-        restructured = _build_restructured_message(msg,
-                                                   MessageType.MinuteAgg)
+        restructured = _build_restructured_message(msg, MessageType.MinuteAgg)
         if USE_POLYGON:
             first = restructured[0]
             if 'o' not in first or 'h' not in first or 'l' not in first:
@@ -130,8 +121,7 @@ def _get_original_message(msg, chans):
                 restructured = None
     if not restructured and (SECOND_AGG_PREFIX + msg.symbol in chans or
                              SECOND_AGG_PREFIX + "*" in chans):
-        restructured = _build_restructured_message(msg,
-                                                   MessageType.SecondAgg)
+        restructured = _build_restructured_message(msg, MessageType.SecondAgg)
         first = restructured[0]
         if 'o' not in first or 'h' not in first or 'l' not in first:
             restructured = None
