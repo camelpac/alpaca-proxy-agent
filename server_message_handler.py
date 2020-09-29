@@ -118,8 +118,8 @@ def _validate_restructured_message(msg, chans):
                     'h' not in restructured['data'] or \
                     'l' not in restructured['data']:
                 restructured = None
-    if not restructured and SECOND_AGG_PREFIX + msg.symbol in chans or \
-            SECOND_AGG_PREFIX + "*" in chans:
+    if not restructured and (SECOND_AGG_PREFIX + msg.symbol in chans or
+                             SECOND_AGG_PREFIX + "*" in chans):
         restructured = _build_restructured_message(msg,
                                                    MessageType.SecondAgg)
         first = restructured[0]
