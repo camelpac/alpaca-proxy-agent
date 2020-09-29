@@ -129,13 +129,9 @@ def _get_original_message(msg, chans):
 
 
 async def on_message(conn, subject, msg):
-    # copy subscribers list to be able to remove closed connections or
-    # add new ones
-    subs = dict(subscribers.items())
-
     # iterate channels and distribute the message to correct subscribers
     try:
-        for sub, channels in subs.items():
+        for sub, channels in subscribers.items():
             restructured = _get_original_message(msg, channels)
 
             if sub.state != State.CLOSED:
