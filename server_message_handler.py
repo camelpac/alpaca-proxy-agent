@@ -129,6 +129,22 @@ def _get_original_message(msg, chans):
 
 
 async def on_message(conn, subject, msg):
+    """
+    This is the handler for server messages.
+    The entry point to this module.
+    We get the server message, already as Entity form translated by the python
+    SDK. We try to bring it back to raw form, and then send it to every client
+    registered to this service.
+
+    The process of re-constructing is not optimal and we may do it for more
+    than one client even if we already have it re-constructed.
+    There's some refactoring required to make sure we re-construct once.
+
+    :param conn:
+    :param subject:
+    :param msg:
+    :return:
+    """
     # iterate channels and distribute the message to correct subscribers
     try:
         for sub, channels in subscribers.items():
@@ -140,4 +156,5 @@ async def on_message(conn, subject, msg):
                     response_queue.put({"subscriber": sub,
                                         "response":   restructured})
     except Exception as e:
+        print(e)
         traceback.print_exc()
