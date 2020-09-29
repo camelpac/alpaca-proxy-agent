@@ -71,6 +71,16 @@ def _build_restructured_message(m, _type: MessageType):
 
 
 def _get_original_message(msg, chans):
+    """
+    This method tries to translate the Entity to its original minimized server
+    The reason is - the clients expects the server format and can't handle the
+    translated message.
+    We use the same mapping used by the python SDK and then try to verify it
+    by making sure some of the fields exist in the re-constructed message
+    :param msg:
+    :param chans:
+    :return:
+    """
     restructured = None
     if QUOTE_PREFIX + msg.symbol in chans or QUOTE_PREFIX + "*" in chans:
         restructured = _build_restructured_message(msg,
