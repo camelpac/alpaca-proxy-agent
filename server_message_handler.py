@@ -87,8 +87,8 @@ def _validate_restructured_message(msg, chans):
                     or 's' not in restructured['data']:
                 restructured = None
 
-    if not restructured and TRADE_PREFIX + msg.symbol in \
-            chans or TRADE_PREFIX + "*" in chans:
+    if not restructured and (TRADE_PREFIX + msg.symbol in
+                             chans or TRADE_PREFIX + "*" in chans):
         restructured = _build_restructured_message(msg,
                                                    MessageType.Trade)
         if USE_POLYGON:
@@ -102,8 +102,9 @@ def _validate_restructured_message(msg, chans):
                     or 'p' not in restructured['data'] \
                     or 's' not in restructured['data']:
                 restructured = None
-    if not restructured and MINUTE_AGG_PREFIX + msg.symbol in chans or \
-            [l for l in chans if MINUTE_AGG_PREFIX + "*" in l]:
+    if not restructured and \
+            (MINUTE_AGG_PREFIX + msg.symbol in chans or
+             [l for l in chans if MINUTE_AGG_PREFIX + "*" in l]):
         restructured = _build_restructured_message(msg,
                                                    MessageType.MinuteAgg)
         if USE_POLYGON:
@@ -141,6 +142,6 @@ async def on_message(conn, subject, msg):
                 if restructured:
                     # only if we were able to restructure it
                     response_queue.put({"subscriber": sub,
-                                        "response": restructured})
+                                        "response":   restructured})
     except Exception as e:
         traceback.print_exc()
