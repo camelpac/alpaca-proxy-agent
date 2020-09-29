@@ -70,7 +70,7 @@ def _build_restructured_message(m, _type: MessageType):
     return _construct_message()
 
 
-def _validate_restructured_message(msg, chans):
+def _get_original_message(msg, chans):
     restructured = None
     if QUOTE_PREFIX + msg.symbol in chans or QUOTE_PREFIX + "*" in chans:
         restructured = _build_restructured_message(msg,
@@ -136,7 +136,7 @@ async def on_message(conn, subject, msg):
     # iterate channels and distribute the message to correct subscribers
     try:
         for sub, channels in subs.items():
-            restructured = _validate_restructured_message(msg, channels)
+            restructured = _get_original_message(msg, channels)
 
             if sub.state != State.CLOSED:
                 if restructured:
