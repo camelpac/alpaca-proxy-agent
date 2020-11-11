@@ -1,7 +1,0 @@
-asciiart module
-===============
-
-.. automodule:: asciiart
-   :members:
-   :undoc-members:
-   :show-inheritance:

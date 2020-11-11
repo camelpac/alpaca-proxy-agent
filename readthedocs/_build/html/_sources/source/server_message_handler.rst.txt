@@ -1,7 +1,0 @@
-server\_message\_handler module
-===============================
-
-.. automodule:: server_message_handler
-   :members:
-   :undoc-members:
-   :show-inheritance:
