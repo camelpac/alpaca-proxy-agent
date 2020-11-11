@@ -1,0 +1,7 @@
+shared\_memory\_obj module
+==========================
+
+.. automodule:: shared_memory_obj
+   :members:
+   :undoc-members:
+   :show-inheritance:
