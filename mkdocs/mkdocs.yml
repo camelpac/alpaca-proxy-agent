@@ -1,1 +1,3 @@
 site_name: Alpaca Proxy Agent
+nav:
+    - Home: index.md
