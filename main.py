@@ -59,7 +59,9 @@ def consumer_thread(channels):
             secret_key=_secret_key if not USE_POLYGON else 'DUMMY',
             base_url=URL(_base_url),
             data_url=URL(_data_url),
-            data_stream='polygon' if USE_POLYGON else 'alpacadatav1')
+            data_stream='polygon' if USE_POLYGON else 'alpacadatav1',
+            raw_data=True,
+        )
 
         conn.on('authenticated')(on_auth)
         conn.on(r'Q.*')(on_message)
