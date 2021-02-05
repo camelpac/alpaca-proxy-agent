@@ -1,6 +1,6 @@
 FROM python:3.6-slim
 
-RUN pip install alpaca-trade-api==0.50.1 \
+RUN pip install alpaca-trade-api==0.52.0 \
                 websockets==8.1
 
 WORKDIR /opt/project
