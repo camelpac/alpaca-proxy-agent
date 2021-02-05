@@ -187,11 +187,14 @@ async def send_response_to_client():
     :return:
     """
     while 1:
-        if response_queue.empty():
-            await asyncio.sleep(0.05)
-            continue
-        response = response_queue.get()
-        await response["subscriber"].send(json.dumps(response["response"]))
+        try:
+            if response_queue.empty():
+                await asyncio.sleep(0.05)
+                continue
+            response = response_queue.get()
+            await response["subscriber"].send(json.dumps(response["response"]))
+        except:
+            pass
 
 
 if __name__ == '__main__':
