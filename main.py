@@ -9,7 +9,6 @@ import alpaca_trade_api as tradeapi
 from alpaca_trade_api.common import URL
 from websockets.protocol import State
 
-from defs import USE_POLYGON
 from server_message_handler import on_message
 from shared_memory_obj import q_mapping, subscribers, response_queue
 from version import VERSION
@@ -56,10 +55,10 @@ def consumer_thread(channels):
     if not conn:
         conn = tradeapi.StreamConn(
             key_id=_key_id,
-            secret_key=_secret_key if not USE_POLYGON else 'DUMMY',
+            secret_key=_secret_key,
             base_url=URL(_base_url),
             data_url=URL(_data_url),
-            data_stream='polygon' if USE_POLYGON else 'alpacadatav1',
+            data_stream='alpacadatav1',
             raw_data=True,
         )
 
@@ -70,8 +69,6 @@ def consumer_thread(channels):
         conn.on(r'listening')(listen)
 
 
-        if USE_POLYGON:
-            conn.on(r'A.*')(on_message)
         conn.on(r'AM.*')(on_message)
         conn.on(r'account_updates')(on_account)
         conn.on(r'trade_updates')(on_trade)
@@ -95,14 +92,6 @@ async def clear_dead_subscribers():
 
 
 async def serve(sub, path):
-    if USE_POLYGON:
-        await sub.send(json.dumps([
-            {
-                "ev": "status",
-                "status": "connected",
-                "message": "Connected Successfully"
-            }
-        ]))
     global conn, _key_id, _secret_key
     global CONSUMER_STARTED
     try:
@@ -115,44 +104,24 @@ async def serve(sub, path):
                 print(e)
 
             if sub not in subscribers.keys():
-                if USE_POLYGON:
-                    if data.get("action"):
-                        if data.get("action") == "auth":
-                            if not _key_id:
-                                _key_id = data.get("params")
-                    # not really authorized yet.
-                    # but sending because it's expected
-                    response = json.dumps([
-                        {
-                            'ev': 'status',
-                            'status': 'auth_success',
-                            'message': 'authenticated'
-                        }
-                    ])
-                    await sub.send(response)
-                else:
-                    if data.get("action"):
-                        if data.get("action") == "authenticate":
-                            if not _key_id:
-                                _key_id = data.get("data").get("key_id")
-                                _secret_key = data.get("data").get(
-                                    "secret_key")
-                    # not really authorized yet.
-                    # but sending because it's expected
-                    response = json.dumps({
-                        "data": {"status": "authorized"},
-                        "stream": "authorization"
-                    })
-                    await sub.send(response)
+                if data.get("action"):
+                    if data.get("action") == "authenticate":
+                        if not _key_id:
+                            _key_id = data.get("data").get("key_id")
+                            _secret_key = data.get("data").get(
+                                "secret_key")
+                # not really authorized yet.
+                # but sending because it's expected
+                response = json.dumps({
+                    "data": {"status": "authorized"},
+                    "stream": "authorization"
+                })
+                await sub.send(response)
                 subscribers[sub] = []
 
             else:
-                if USE_POLYGON:
-                    if data.get("action") == "subscribe":
-                        new_channels = data.get("params").split(",")
-                else:
-                    if data.get("action") == "listen":
-                        new_channels = data.get("data").get("streams")
+                if data.get("action") == "listen":
+                    new_channels = data.get("data").get("streams")
 
                 previous_channels = await get_current_channels()
                 if previous_channels:
@@ -210,8 +179,7 @@ if __name__ == '__main__':
     #
     print(ascii_art)
     logging.info(f"Alpaca Proxy Agent v{VERSION}")
-    logging.info(f"Using the {'Polygon' if USE_POLYGON else 'Alpaca'} "
-                 f"Websocket")
+    logging.info(f"Using the Alpaca Websocket")
     start_server = websockets.serve(serve, "0.0.0.0", 8765)
 
     # asyncio.get_event_loop().run_until_complete(start_server)
