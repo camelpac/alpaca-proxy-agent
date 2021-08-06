@@ -1,11 +1,9 @@
-FROM python:3.6-slim
-
-RUN pip install alpaca-trade-api==0.52.0 \
-                websockets==8.1
+FROM python:3.8-slim
 
 WORKDIR /opt/project
 
 COPY . /opt/project/
+RUN pip install -r requirements.txt
 
 CMD python main.py
 
