@@ -27,9 +27,8 @@ conn: tradeapi.Stream = None
 _key_id = None
 _secret_key = None
 _authenticated = False
-_base_url = "https://paper-api.alpaca.markets" if not os.getenv("IS_LIVE") \
-    else ''
-_pro_subscription = 'sip' if os.getenv("IS_PRO") else 'iex'
+_base_url = "https://paper-api.alpaca.markets"
+_pro_subscription = 'sip' if os.getenv("IS_PRO").lower() == 'true' else 'iex'
 CONSUMER_STARTED = False
 
 
