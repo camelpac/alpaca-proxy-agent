@@ -1,7 +1,13 @@
 #!/usr/bin/env python
+import os
 
+import nest_asyncio
+
+nest_asyncio.apply()
 import asyncio
-import json
+from collections import defaultdict
+
+import msgpack
 
 import websockets
 import threading
@@ -10,80 +16,72 @@ from alpaca_trade_api.common import URL
 from websockets.protocol import State
 
 from server_message_handler import on_message
-from shared_memory_obj import q_mapping, subscribers, response_queue
+from shared_memory_obj import subscribers, response_queue
 from version import VERSION
 from asciiart import ascii_art
 from threading import Lock
 
 lock = Lock()
 
-
-conn: tradeapi.StreamConn = None
+conn: tradeapi.Stream = None
 _key_id = None
 _secret_key = None
 _authenticated = False
 _base_url = "https://paper-api.alpaca.markets"
-_data_url = "https://data.alpaca.markets"
-
-
-async def on_auth(conn, stream, msg):
-    pass
-
-
-async def on_account(conn, stream, msg):
-    q_mapping[msg.symbol].put(msg)
-
-
-async def listen(conn, channel, msg):
-    if hasattr(msg, 'error'):
-        print('listening error', msg.error)
-
-
-async def on_trade(conn, stream, msg):
-    if msg.order['symbol'] in q_mapping:
-        q_mapping[msg.order['symbol']].put(msg.order)
-
-
+_pro_subscription = 'sip' if os.getenv("IS_PRO").lower() == 'true' else 'iex'
 CONSUMER_STARTED = False
+
+
 def consumer_thread(channels):
     try:
         # make sure we have an event loop, if not create a new one
-        asyncio.get_event_loop()
+        loop = asyncio.get_event_loop()
+        # loop.set_debug(True)
     except RuntimeError:
         asyncio.set_event_loop(asyncio.new_event_loop())
+
     global conn
     if not conn:
-        conn = tradeapi.StreamConn(
-            key_id=_key_id,
-            secret_key=_secret_key,
-            base_url=URL(_base_url),
-            data_url=URL(_data_url),
-            data_stream='alpacadatav1',
-            raw_data=True,
-        )
-
-        conn.on('authenticated')(on_auth)
-        conn.on(r'Q.*')(on_message)
-        conn.on(r'T.*')(on_message)
-
-        conn.on(r'listening')(listen)
+        conn = tradeapi.Stream(_key_id,
+                               _secret_key,
+                               base_url=URL(_base_url),
+                               data_feed=_pro_subscription,
+                               raw_data=True)
+        subscribe(channels)
+        conn.run()
 
 
-        conn.on(r'AM.*')(on_message)
-        conn.on(r'account_updates')(on_account)
-        conn.on(r'trade_updates')(on_trade)
-        conn.run(channels)
+def subscribe(channels):
+    logging.info(f"Subscribing to: {channels}")
+    conn.subscribe_trades(on_message, *channels['trades'])
+    conn.subscribe_quotes(on_message, *channels['quotes'])
+    conn.subscribe_bars(on_message, *channels['bars'])
+    conn.subscribe_statuses(on_message, *channels['statuses'])
+    conn.subscribe_daily_bars(on_message, *channels['dailyBars'])
 
 
-async def get_current_channels():
-    result = []
+def unsubscribe(channels):
+    logging.info(f"Unsubscribing from: {channels}")
+    try:
+        conn.unsubscribe_trades(*channels['trades'])
+        conn.unsubscribe_quotes(*channels['quotes'])
+        conn.unsubscribe_bars(*channels['bars'])
+        conn.unsubscribe_statuses(*channels['statuses'])
+        conn.unsubscribe_daily_bars(*channels['dailyBars'])
+    except Exception as e:
+        logging.warning(f"error unsubscribing from {channels}. {e}")
+
+
+def get_current_channels():
+    result = defaultdict(set)
     for sub, chans in subscribers.items():
-        result.extend(chans)
-    result = list(set(result))  # we want the list to be unique
+        if chans:
+            for _type in chans:
+                result[_type].update(set(chans[_type]))
     return result
 
 
-async def clear_dead_subscribers():
+def clear_dead_subscribers():
     # copy to be able to remove closed connections
     subs = dict(subscribers.items())
     for sub, chans in subs.items():
@@ -92,60 +90,72 @@ async def clear_dead_subscribers():
 
 
 async def serve(sub, path):
+    connected = [{"T": "success", "msg": "connected"}]
+    await sub.send(msgpack.packb(connected, use_bin_type=True))
     global conn, _key_id, _secret_key
     global CONSUMER_STARTED
     try:
         async for msg in sub:
             # msg = await sub.recv()
             try:
-                data = json.loads(msg)
-                print(f"< {data}")
+                data = msgpack.unpackb(msg)
+                # print(f"< {data}")
             except Exception as e:
                 print(e)
 
             if sub not in subscribers.keys():
                 if data.get("action"):
-                    if data.get("action") == "authenticate":
+                    if data.get("action") == "auth":
                         if not _key_id:
-                            _key_id = data.get("data").get("key_id")
-                            _secret_key = data.get("data").get(
-                                "secret_key")
+                            _key_id = data.get("key")
+                            _secret_key = data.get("secret")
                 # not really authorized yet.
                 # but sending because it's expected
-                response = json.dumps({
-                    "data": {"status": "authorized"},
-                    "stream": "authorization"
-                })
-                await sub.send(response)
-                subscribers[sub] = []
+                authenticated = [{"T": "success", "msg": "authenticated"}]
+                await sub.send(msgpack.packb(authenticated,
+                                             use_bin_type=True))
+                subscribers[sub] = defaultdict(list)
 
             else:
-                if data.get("action") == "listen":
-                    new_channels = data.get("data").get("streams")
+                new_channels = {}
+                if data.get("action") == "subscribe":
+                    data.pop("action")
+                    new_channels = data
+                else:
+                    raise Exception("Got here")
 
-                previous_channels = await get_current_channels()
+                previous_channels = get_current_channels()
                 if previous_channels:
-                    await conn.unsubscribe(previous_channels)
-                    await clear_dead_subscribers()
-
-                subscribers[sub] = new_channels
+                    # it is easier to first unsubscribe from previous channels
+                    # and then subscribe again. this way we make sure we clean
+                    # dead connections.
+                    unsubscribe(previous_channels)
+                    clear_dead_subscribers()
+                for _type in new_channels:
+                    subscribers[sub][_type].extend(new_channels[_type])
+                    subscribers[sub][_type] = list(
+                        set(subscribers[sub][_type]))
                 with lock:
                     if not CONSUMER_STARTED:
                         CONSUMER_STARTED = True
                         threading.Thread(target=consumer_thread,
-                                         args=(new_channels, )).start()
+                                         args=(new_channels,)).start()
                     else:
-                        channels = await get_current_channels()
-                        await conn.subscribe(channels)
+                        channels = get_current_channels()
+                        subscribe(channels)
     except Exception as e:
+        # traceback.print_exc()
         print(e)
-    print("Done")
+        # we clean up subscriptions upon disconnection and subscribe again
+        # for still active clients
+        current = get_current_channels()
+        clear_dead_subscribers()
+        unsubscribe(current)
+        current = get_current_channels()
+        if current:
+            subscribe(current)
 
-    # while 1:
-    #     count += 1
-    #     await websocket.send(f"{greeting} {count}")
-    #     # print(f"> {greeting}")
-    #     await asyncio.sleep(3)
+    print("Done")
 
 
 async def send_response_to_client():
@@ -163,7 +173,9 @@ async def send_response_to_client():
                 await asyncio.sleep(0.05)
                 continue
             response = response_queue.get()
-            await response["subscriber"].send(json.dumps(response["response"]))
+            # print(f"send {response['response']}")
+            await response["subscriber"].send(
+                msgpack.packb([response["response"]]))
         except:
             pass
 
@@ -179,10 +191,17 @@ if __name__ == '__main__':
     #
     print(ascii_art)
     logging.info(f"Alpaca Proxy Agent v{VERSION}")
-    logging.info(f"Using the Alpaca Websocket")
+    logging.info("Using the Alpaca Websocket")
+    if os.getenv("IS_LIVE"):
+        logging.info("Connecting to the real account endpoint")
+    else:
+        logging.info("Connecting to the paper account endpoint")
+    if _pro_subscription == 'sip':
+        logging.info("Using the pro-subscription plan(sip)")
+    else:
+        logging.info("Using the free subscription plan(iex)")
     start_server = websockets.serve(serve, "0.0.0.0", 8765)
 
-    # asyncio.get_event_loop().run_until_complete(start_server)
     asyncio.get_event_loop().run_until_complete(asyncio.gather(
         start_server,
         send_response_to_client(),
