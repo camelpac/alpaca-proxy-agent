@@ -1,4 +1,5 @@
 aiohttp==3.7.4
+requests==2.26.0
 alpaca-trade-api==1.2.3
 asyncio-nats-client==0.10.0
 msgpack==1.0.2
@@ -6,7 +7,6 @@ numpy==1.19.0
 pandas==1.0.5
 python-dateutil==2.8.1
 pytz==2020.1
-requests==2.24.0
 urllib3==1.26.5
 websocket-client==0.57.0
 websockets==9.1
