@@ -13,7 +13,7 @@ import websockets
 import threading
 import alpaca_trade_api as tradeapi
 from alpaca_trade_api.common import URL
-from websockets.protocol import State
+from websockets import protocol
 
 from server_message_handler import on_message
 from shared_memory_obj import subscribers, response_queue
@@ -85,7 +85,7 @@ def clear_dead_subscribers():
     # copy to be able to remove closed connections
     subs = dict(subscribers.items())
     for sub, chans in subs.items():
-        if sub.state == State.CLOSED:
+        if sub.state == protocol.State.CLOSED:
             del subscribers[sub]
 
 
