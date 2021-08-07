@@ -46,12 +46,12 @@ You can do it like this:
 
 so you should execute this for the paid data stream:
 ```python
- docker run -p 8765:8765 -e IS_PRO=true camelpac/alpaca-proxy-agent
+ docker run -p 8765:8765 -it -e IS_PRO=true camelpac/alpaca-proxy-agent
 ```
 and you should execute this for the free data stream:
 
 ```python
- docker run -p 8765:8765 -e IS_PRO=false camelpac/alpaca-proxy-agent
+ docker run -p 8765:8765 -it -e IS_PRO=false camelpac/alpaca-proxy-agent
 ```
 
 ## Security
