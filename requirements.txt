@@ -1,5 +1,5 @@
 aiohttp==3.7.4
-requests==2.26.0
+requests==2.31.0
 alpaca-trade-api==1.2.3
 asyncio-nats-client==0.10.0
 msgpack==1.0.2
