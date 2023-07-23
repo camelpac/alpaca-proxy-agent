@@ -3,7 +3,7 @@ requests==2.26.0
 alpaca-trade-api==1.2.3
 asyncio-nats-client==0.10.0
 msgpack==1.0.2
-numpy==1.19.0
+numpy==1.22.0
 pandas==1.0.5
 python-dateutil==2.8.1
 pytz==2020.1
